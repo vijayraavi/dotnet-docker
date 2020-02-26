@@ -1,0 +1,1 @@
+docker build --pull -t dotnetapp --build-arg VERSION=3.1.2 --build-arg SDKVERSION=3.1.102 .
