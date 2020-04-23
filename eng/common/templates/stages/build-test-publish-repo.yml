@@ -145,16 +145,16 @@ stages:
       buildJobTimeout: ${{ parameters.windowsAmdBuildJobTimeout }}
       customInitSteps: ${{ parameters.customBuildInitSteps }}
 
-- ${{ if eq(variables['System.TeamProject'], 'internal') }}:
-  ################################################################################
-  # Post-Build
-  ################################################################################
-  - stage: Post_Build
-    dependsOn: Build
-    condition: and(succeeded(), contains(variables['stages'], 'build'))
-    jobs:
-    - template: ../jobs/post-build.yml
+################################################################################
+# Post-Build
+################################################################################
+- stage: Post_Build
+  dependsOn: Build
+  condition: and(succeeded(), contains(variables['stages'], 'build'))
+  jobs:
+  - template: ../jobs/post-build.yml
 
+- ${{ if eq(variables['System.TeamProject'], 'internal') }}:
   ################################################################################
   # Test Images
   ################################################################################
@@ -253,40 +253,40 @@ stages:
         matrix: dependencies.GenerateTestMatrix.outputs['matrix.WindowsLtsc2016Amd64']
         testJobTimeout: ${{ parameters.windowsAmdTestJobTimeout }}
 
-  ################################################################################
-  # Publish Images
-  ################################################################################
-  - stage: Publish
-    dependsOn: Test
-    condition: "
-      and(
-        contains(variables['stages'], 'publish'),
+################################################################################
+# Publish Images
+################################################################################
+- stage: Publish
+  dependsOn: Test
+  condition: "
+    and(
+      contains(variables['stages'], 'publish'),
+      or(
         or(
+          and(
+            and(
+              contains(variables['stages'], 'build'),
+              succeeded('Post_Build')),
+            and(
+              contains(variables['stages'], 'test'),
+              succeeded('Test'))),
           or(
             and(
-              and(
-                contains(variables['stages'], 'build'),
-                succeeded('Post_Build')),
+              not(contains(variables['stages'], 'build')),
               and(
                 contains(variables['stages'], 'test'),
                 succeeded('Test'))),
-            or(
+            and(
+              not(contains(variables['stages'], 'test')),
               and(
-                not(contains(variables['stages'], 'build')),
-                and(
-                  contains(variables['stages'], 'test'),
-                  succeeded('Test'))),
-              and(
-                not(contains(variables['stages'], 'test')),
-                and(
-                  contains(variables['stages'], 'build'),
-                  succeeded('Post_Build'))))),
-          not(
-            or(
-              contains(variables['stages'], 'build'),
-              contains(variables['stages'], 'test')))))"
-    jobs:
-    - template: ../jobs/publish.yml
-      parameters:
-        pool: # linuxAmd64Pool
-          name: Hosted Ubuntu 1604
+                contains(variables['stages'], 'build'),
+                succeeded('Post_Build'))))),
+        not(
+          or(
+            contains(variables['stages'], 'build'),
+            contains(variables['stages'], 'test')))))"
+  jobs:
+  - template: ../jobs/publish.yml
+    parameters:
+      pool: # linuxAmd64Pool
+        name: Hosted Ubuntu 1604

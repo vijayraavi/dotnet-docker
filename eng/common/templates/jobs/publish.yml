@@ -22,7 +22,7 @@ jobs:
     # Use dry-run option for certain publish operations if this is not a production build
   - script: |
       dryRunArg=""
-      if [ "$PUBLISHREPOPREFIX" != "public/" ]; then
+      if [ "$PUBLISHREPOPREFIX" != "public/" || ${{ variables['System.TeamProject'] }} == "public" ]; then
         dryRunArg=" --dry-run"
       fi
       echo "##vso[task.setvariable variable=dryRunArg]$dryRunArg"
@@ -39,6 +39,7 @@ jobs:
       --architecture '*'
       --repo-prefix $(publishRepoPrefix)
       --image-info $(artifactsPath)/image-info.json
+      $(dryRunArg)
       $(imageBuilder.pathArgs)
       $(imageBuilder.commonCmdArgs)
     displayName: Copy Images
@@ -50,9 +51,13 @@ jobs:
       --password $(BotAccount-dotnet-docker-acr-bot-password)
       --os-type '*'
       --architecture '*'
+      $(dryRunArg)
       $(imageBuilder.pathArgs)
       $(imageBuilder.commonCmdArgs)
     displayName: Publish Manifest
+  - publish: $(Build.ArtifactStagingDirectory)/image-info.json
+    artifact: image-info-final
+    displayName: Publish Image Info File Artifact
   - template: ../steps/publish-readmes.yml
     parameters:
       dryRunArg: $(dryRunArg)
@@ -70,9 +75,6 @@ jobs:
       --git-path build-info/docker/image-info.$(Build.Repository.Name)-$(publicSourceBranch)$(imageInfoVariant).json
       $(dryRunArg)
     displayName: Publish Image Info
-  - publish: $(Build.ArtifactStagingDirectory)/image-info.json
-    artifact: image-info-final
-    displayName: Publish Image Info File Artifact
   - task: ms.vss-governance-buildtask.governance-build-task-component-detection.ComponentGovernanceComponentDetection@0
     displayName: Component Detection
   - template: ../steps/cleanup-docker-linux.yml
